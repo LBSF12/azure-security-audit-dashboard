@@ -1,37 +1,96 @@
 
-name: Python CI Pipeline
+name: Python CI/CD Pipeline
 
+# Trigger the pipeline when code is pushed to main,
+# when a pull request targets main, or manually.
 'on':
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
+
   workflow_dispatch:
 
+# Default GitHub token permissions
 permissions:
   contents: read
 
 jobs:
+
+  # ==========================================
+  # JOB 1: CONTINUOUS INTEGRATION (CI)
+  # ==========================================
   test:
     name: Test Python Application
     runs-on: ubuntu-latest
 
     steps:
+      # Download repository source code
       - name: Checkout source code
         uses: actions/checkout@v4
 
+      # Install Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
+      # Install application dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
+      # Execute automated tests
       - name: Run automated tests
         run: |
           python -m pytest -v
+
+  # ==========================================
+  # JOB 2: CONTINUOUS DEPLOYMENT (CD)
+  # ==========================================
+  deploy:
+    name: Deploy to Azure App Service
+    runs-on: ubuntu-latest
+
+    # Only deploy if the CI job succeeds
+    needs: test
+
+    # Deploy only from main, not pull requests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+
+    # Required for GitHub OIDC authentication
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      # Download repository source code
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # Authenticate securely to Microsoft Azure
+      - name: Authenticate to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Deploy the Flask application
+      - name: Deploy Python application
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: security-audit-lbsf12
+          package: .
+
+      # Check that the deployed application is healthy
+      - name: Verify deployment
+        shell: bash
+        run: |
+          curl --fail --retry 12 --retry-delay 10 \
+            --retry-all-errors \
+            https://security-audit-lbsf12.azurewebsites.net/health
