@@ -7,8 +7,9 @@ app = Flask(__name__)
 def home():
     return jsonify({
         "application": "Azure Security Audit Dashboard",
-        "version": "1.0.0",
-        "status": "running"
+        "version": "1.1.0",
+        "status": "running",
+        "deployment": "Automated using GitHub Actions CI/CD"
     })
 
 
