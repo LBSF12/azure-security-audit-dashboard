@@ -6,7 +6,7 @@ def test_home():
     response = client.get("/")
 
     assert response.status_code == 200
-    assert response.json["version"] == "1.1.0"
+    assert response.json["version"] == "1.2.0"
 
 
 def test_health():
