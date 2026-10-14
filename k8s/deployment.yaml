@@ -1,0 +1,41 @@
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: security-audit-deployment
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: security-audit
+
+  template:
+    metadata:
+      labels:
+        app: security-audit
+
+    spec:
+      containers:
+        - name: flask
+          image: ghcr.io/lbsf12/azure-security-audit-dashboard:latest
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8000
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
